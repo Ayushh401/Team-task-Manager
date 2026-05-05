@@ -7,6 +7,43 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get all tasks (root route)
+router.get('/', auth, async (req, res) => {
+  try {
+    const { status, assignedTo, priority, project } = req.query;
+    
+    // Build query
+    const query = {};
+    
+    // Only show tasks from projects user has access to
+    const userProjects = await Project.find({
+      $or: [
+        { owner: req.user._id },
+        { 'members.user': req.user._id }
+      ]
+    }).select('_id');
+    
+    query.project = { $in: userProjects.map(p => p._id) };
+    
+    if (status) query.status = status;
+    if (assignedTo) query.assignedTo = assignedTo;
+    if (priority) query.priority = priority;
+    if (project) query.project = project;
+
+    const tasks = await Task.find(query)
+      .populate('assignedTo', 'username email avatar')
+      .populate('createdBy', 'username email avatar')
+      .populate('comments.user', 'username email avatar')
+      .populate('project', 'name')
+      .sort({ createdAt: -1 });
+
+    res.json({ tasks });
+  } catch (error) {
+    console.error('Get all tasks error:', error);
+    res.status(500).json({ message: 'Server error while fetching tasks' });
+  }
+});
+
 // Get all tasks for a project
 router.get('/project/:projectId', auth, async (req, res) => {
   try {
