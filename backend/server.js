@@ -61,8 +61,13 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/dist')));
   
-  // Serve frontend for all routes except API routes and root
-  app.get(/^(?!\/api|\/$).*/, (req, res) => {
+  // Root route - serve frontend
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  });
+  
+  // Serve frontend for all routes except API routes
+  app.get(/^(?!\/api).*$/, (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
   });
 } else {
