@@ -83,6 +83,36 @@ router.get('/project/:projectId', auth, async (req, res) => {
   }
 });
 
+// Get user's tasks across all projects
+router.get('/my-tasks', auth, async (req, res) => {
+  try {
+    const { status, priority, limit } = req.query;
+
+    // Build query
+    const query = { assignedTo: req.user._id };
+    
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+
+    let taskQuery = Task.find(query)
+      .populate('project', 'name')
+      .populate('createdBy', 'username email avatar')
+      .sort({ dueDate: 1, createdAt: -1 });
+
+    // Apply limit if provided
+    if (limit) {
+      taskQuery = taskQuery.limit(parseInt(limit));
+    }
+
+    const tasks = await taskQuery;
+
+    res.json({ tasks });
+  } catch (error) {
+    console.error('Get my tasks error:', error);
+    res.status(500).json({ message: 'Server error while fetching your tasks' });
+  }
+});
+
 // Get single task by ID
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -422,29 +452,6 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('Delete task error:', error);
     res.status(500).json({ message: 'Server error while deleting task' });
-  }
-});
-
-// Get user's tasks across all projects
-router.get('/my-tasks', auth, async (req, res) => {
-  try {
-    const { status, priority } = req.query;
-
-    // Build query
-    const query = { assignedTo: req.user._id };
-    
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
-
-    const tasks = await Task.find(query)
-      .populate('project', 'name')
-      .populate('createdBy', 'username email avatar')
-      .sort({ dueDate: 1, createdAt: -1 });
-
-    res.json({ tasks });
-  } catch (error) {
-    console.error('Get my tasks error:', error);
-    res.status(500).json({ message: 'Server error while fetching your tasks' });
   }
 });
 
